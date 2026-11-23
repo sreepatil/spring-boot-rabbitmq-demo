@@ -1,6 +1,10 @@
 package com.example.springboot_rabbitmq_demo.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +20,13 @@ public class RabbitMQConfig {
 
     @Value("${rabbitmq.routing.key}")
     private String routingKey;
+
+    @Value("${rabbitmq.queue.json.name}")
+    private String jsonQueue;
+
+    @Value("${rabbitmq.routing.json.key}")
+    private String routingJsonKey;
+
 
     // Spring Bean for RabbitMQ queue
     @Bean
@@ -36,5 +47,34 @@ public class RabbitMQConfig {
                 .bind(queue())
                 .to(exchange())
                 .with(routingKey);
+    }
+
+    //JSON
+
+    // Spring bean for Rabbitmq json Queue
+    @Bean
+    public Queue jsonQqueue(){
+        return new Queue(jsonQueue);
+    }
+
+    // Binding b/w json queue & exchange using routing key
+    @Bean
+    public Binding jsonBinding(){
+        return BindingBuilder
+                .bind(jsonQqueue())
+                .to(exchange())
+                .with(routingJsonKey);
+    }
+
+    @Bean
+    public MessageConverter converter(){
+        return new JacksonJsonMessageConverter();
+    }
+
+    @Bean
+    public AmqpTemplate amqpTemplate(ConnectionFactory connectionFactory){
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(converter());
+        return rabbitTemplate;
     }
 }
